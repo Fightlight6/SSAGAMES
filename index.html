@@ -1,0 +1,639 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GameVault - Personal Game Launcher</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#f0f5ff',
+                            500: '#6366f1',
+                            600: '#4f46e5',
+                            700: '#4338ca',
+                            900: '#1e1b4b',
+                        },
+                        dark: {
+                            bg: '#0f172a',
+                            card: '#1e293b',
+                            accent: '#334155'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background-color: #0b0f19;
+            color: #f3f4f6;
+            font-family: 'Inter', sans-serif;
+        }
+        /* Custom Glassmorphism */
+        .glass-card {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        .glass-modal {
+            background: rgba(15, 23, 42, 0.92);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+        }
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0f172a;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #475569;
+        }
+        /* Neon Glow Effects */
+        .glow-hover:hover {
+            box-shadow: 0 0 20px rgba(99, 102, 241, 0.4);
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between selection:bg-brand-500 selection:text-white">
+
+    <!-- Navbar Header -->
+    <header class="sticky top-0 z-30 glass-card border-b border-slate-800/80 px-4 lg:px-8 py-3.5">
+        <div class="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
+            
+            <!-- Logo & Title -->
+            <div class="flex items-center space-x-3 w-full md:w-auto justify-between md:justify-start">
+                <div class="flex items-center space-x-3 cursor-pointer" onclick="filterCategory('All')">
+                    <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 via-violet-600 to-pink-500 flex items-center justify-center shadow-lg shadow-indigo-500/30">
+                        <i class="fa-solid font-black fa-gamepad text-xl text-white"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-xl font-extrabold tracking-tight bg-gradient-to-r from-white via-slate-200 to-slate-400 bg-clip-text text-transparent">GameVault</h1>
+                        <p class="text-xs text-slate-400 hidden sm:block">Play & Launch Your Web Collection</p>
+                    </div>
+                </div>
+
+                <!-- Add Game Button Mobile -->
+                <button onclick="openAddModal()" class="md:hidden flex items-center space-x-1.5 bg-gradient-to-r from-brand-600 to-violet-600 text-white px-3 py-2 rounded-xl text-xs font-semibold hover:opacity-90 transition">
+                    <i class="fa-solid fa-plus"></i>
+                    <span>Add Game</span>
+                </button>
+            </div>
+
+            <!-- Search Bar & Controls -->
+            <div class="flex items-center space-x-3 w-full md:w-auto">
+                <div class="relative w-full md:w-80">
+                    <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></i>
+                    <input type="text" id="searchInput" oninput="handleSearch()" placeholder="Search games, tags..." class="w-full bg-slate-900/80 border border-slate-700/60 rounded-xl pl-10 pr-4 py-2 text-sm text-slate-200 placeholder-slate-400 focus:outline-none focus:border-brand-500 transition shadow-inner">
+                </div>
+
+                <!-- Add Game Desktop Button -->
+                <button onclick="openAddModal()" class="hidden md:flex items-center space-x-2 bg-gradient-to-r from-brand-600 to-violet-600 hover:from-brand-500 hover:to-violet-500 text-white px-4 py-2 rounded-xl text-sm font-semibold transition shadow-lg shadow-brand-500/20 active:scale-95 whitespace-nowrap">
+                    <i class="fa-solid fa-plus text-xs"></i>
+                    <span>Add New Game</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Dashboard Container -->
+    <main class="max-w-7xl mx-auto px-4 lg:px-8 py-8 flex-grow w-full">
+
+        <!-- Category & Filter Bar -->
+        <div class="flex flex-wrap items-center justify-between gap-3 mb-8 pb-4 border-b border-slate-800/80">
+            <div class="flex items-center space-x-2 overflow-x-auto pb-2 sm:pb-0 w-full sm:w-auto no-scrollbar" id="categoryContainer">
+                <!-- Dynamically Rendered Categories -->
+            </div>
+            
+            <div class="text-xs text-slate-400 font-medium flex items-center space-x-2">
+                <span id="gameCountText">Showing 0 games</span>
+                <button onclick="resetDefaults()" title="Reset to Default Games" class="ml-2 text-slate-500 hover:text-slate-300 transition">
+                    <i class="fa-solid fa-rotate"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Games Grid -->
+        <div id="gamesGrid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+            <!-- Dynamic Game Cards Inserted Here -->
+        </div>
+
+        <!-- Empty State Message -->
+        <div id="emptyState" class="hidden flex-col items-center justify-center py-20 text-center">
+            <div class="w-20 h-20 bg-slate-800/60 rounded-full flex items-center justify-center mb-4 text-slate-500">
+                <i class="fa-solid fa-ghost text-4xl"></i>
+            </div>
+            <h3 class="text-lg font-bold text-slate-200">No Games Found</h3>
+            <p class="text-sm text-slate-400 max-w-sm mt-1">Try searching for something else or add your favorite web game to your collection!</p>
+            <button onclick="openAddModal()" class="mt-5 bg-slate-800 hover:bg-slate-700 text-brand-500 px-4 py-2 rounded-xl text-sm font-semibold transition">
+                + Add Game
+            </button>
+        </div>
+
+        <!-- Hosting Instructions Guide Banner -->
+        <section class="mt-16 bg-slate-900/60 border border-slate-800 rounded-2xl p-6 lg:p-8">
+            <div class="flex items-center space-x-3 mb-4">
+                <div class="w-10 h-10 rounded-xl bg-slate-800 flex items-center justify-center text-white">
+                    <i class="fa-brands fa-github text-2xl"></i>
+                </div>
+                <div>
+                    <h2 class="text-lg font-bold text-slate-100">Host This Launcher Free on GitHub Pages</h2>
+                    <p class="text-xs text-slate-400">Step-by-step guide to get your personal game portal hosted online in under 3 minutes.</p>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mt-6">
+                <div class="bg-slate-950/60 p-4 rounded-xl border border-slate-800/80">
+                    <div class="text-xs font-bold text-brand-500 uppercase tracking-wider mb-1">Step 1</div>
+                    <h4 class="text-sm font-semibold text-slate-200 mb-1">Create Repository</h4>
+                    <p class="text-xs text-slate-400">Log into GitHub, create a new public repository (e.g., <code class="bg-slate-800 px-1 rounded text-slate-300">my-game-vault</code>).</p>
+                </div>
+                <div class="bg-slate-950/60 p-4 rounded-xl border border-slate-800/80">
+                    <div class="text-xs font-bold text-brand-500 uppercase tracking-wider mb-1">Step 2</div>
+                    <h4 class="text-sm font-semibold text-slate-200 mb-1">Upload File</h4>
+                    <p class="text-xs text-slate-400">Upload this file and make sure to name it exactly <code class="bg-slate-800 px-1 rounded text-slate-300">index.html</code> in the main branch.</p>
+                </div>
+                <div class="bg-slate-950/60 p-4 rounded-xl border border-slate-800/80">
+                    <div class="text-xs font-bold text-brand-500 uppercase tracking-wider mb-1">Step 3</div>
+                    <h4 class="text-sm font-semibold text-slate-200 mb-1">Enable Pages</h4>
+                    <p class="text-xs text-slate-400">Go to <b>Settings > Pages</b>. Under 'Build and deployment', choose <b>Deploy from a branch</b> (Main / root).</p>
+                </div>
+                <div class="bg-slate-950/60 p-4 rounded-xl border border-slate-800/80">
+                    <div class="text-xs font-bold text-brand-500 uppercase tracking-wider mb-1">Step 4</div>
+                    <h4 class="text-sm font-semibold text-slate-200 mb-1">Play Anywhere</h4>
+                    <p class="text-xs text-slate-400">GitHub will generate your live site URL (<code class="bg-slate-800 px-1 rounded text-slate-300">username.github.io/repo</code>). Share & play!</p>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="border-t border-slate-800/80 py-6 text-center text-xs text-slate-500">
+        <p>GameVault Dashboard &bull; Designed for seamless web game hosting and playing.</p>
+    </footer>
+
+    <!-- ADD GAME MODAL -->
+    <div id="addModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm hidden">
+        <div class="glass-modal w-full max-w-lg rounded-2xl p-6 shadow-2xl relative border border-slate-700/60">
+            <button onclick="closeAddModal()" class="absolute top-4 right-4 text-slate-400 hover:text-white transition">
+                <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
+            <h3 class="text-xl font-bold text-slate-100 mb-1">Add Game to Vault</h3>
+            <p class="text-xs text-slate-400 mb-5">Enter details for any browser game, HTML5 page, or playable iframe link.</p>
+
+            <form id="addGameForm" onsubmit="saveCustomGame(event)" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1">Game Title *</label>
+                    <input type="text" id="gameTitle" required placeholder="e.g. Pac-Man, Retro Bowl" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-slate-200 focus:outline-none focus:border-brand-500">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1">Game Web URL / Embed Link *</label>
+                    <input type="url" id="gameUrl" required placeholder="https://example.com/play-game" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-slate-200 focus:outline-none focus:border-brand-500">
+                    <p class="text-[11px] text-slate-400 mt-1">Direct game web page or iframe-compatible link.</p>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1">Category</label>
+                        <select id="gameCategory" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-slate-200 focus:outline-none focus:border-brand-500">
+                            <option value="Action">Action</option>
+                            <option value="Puzzle">Puzzle</option>
+                            <option value="Arcade">Arcade</option>
+                            <option value="Retro">Retro</option>
+                            <option value="Custom">Custom</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1">Thumbnail Image URL</label>
+                        <input type="url" id="gameImage" placeholder="Optional image link" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-slate-200 focus:outline-none focus:border-brand-500">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1">Description</label>
+                    <textarea id="gameDesc" rows="2" placeholder="Brief note about controls or description..." class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2 text-sm text-slate-200 focus:outline-none focus:border-brand-500 resize-none"></textarea>
+                </div>
+
+                <div class="flex justify-end space-x-3 pt-3 border-t border-slate-800">
+                    <button type="button" onclick="closeAddModal()" class="px-4 py-2 rounded-xl text-sm font-semibold text-slate-400 hover:text-slate-200 transition">Cancel</button>
+                    <button type="submit" class="bg-gradient-to-r from-brand-600 to-violet-600 hover:from-brand-500 hover:to-violet-500 text-white px-5 py-2 rounded-xl text-sm font-semibold transition shadow-lg shadow-brand-500/20">Save Game</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- IN-APP GAME VIEWER MODAL -->
+    <div id="gameViewerModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/90 hidden">
+        <div class="w-full h-full flex flex-col">
+            <!-- Game Viewer Header Controls -->
+            <div class="bg-slate-900/90 border-b border-slate-800 px-4 py-2.5 flex items-center justify-between">
+                <div class="flex items-center space-x-3">
+                    <span id="viewerTitle" class="font-bold text-slate-100 text-sm md:text-base">Game Title</span>
+                    <span id="viewerCategory" class="text-xs bg-slate-800 text-slate-400 px-2.5 py-0.5 rounded-full border border-slate-700">Category</span>
+                </div>
+
+                <!-- Viewer Actions -->
+                <div class="flex items-center space-x-2">
+                    <button onclick="refreshGame()" title="Reload Game" class="p-2 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition">
+                        <i class="fa-solid fa-rotate-right text-sm"></i>
+                    </button>
+                    <button onclick="toggleFullscreen()" title="Fullscreen" class="p-2 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition">
+                        <i class="fa-solid fa-expand text-sm"></i>
+                    </button>
+                    <button onclick="openExternal()" title="Open in New Tab" class="p-2 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition">
+                        <i class="fa-solid fa-up-right-from-square text-sm"></i>
+                    </button>
+                    <div class="h-4 w-px bg-slate-700 mx-1"></div>
+                    <button onclick="closeGameViewer()" class="px-3 py-1.5 bg-red-600/80 hover:bg-red-600 text-white rounded-lg text-xs font-semibold transition">
+                        <i class="fa-solid fa-xmark mr-1"></i> Close
+                    </button>
+                </div>
+            </div>
+
+            <!-- Iframe Game Canvas Holder -->
+            <div class="flex-grow bg-black relative flex items-center justify-center">
+                <div id="loadingSpinner" class="absolute inset-0 flex flex-col items-center justify-center bg-slate-950 z-10">
+                    <i class="fa-solid fa-circle-notch fa-spin text-3xl text-brand-500 mb-3"></i>
+                    <p class="text-sm text-slate-400">Loading Game Container...</p>
+                </div>
+                <iframe id="gameIframe" class="w-full h-full border-0" allow="fullscreen; autoplay; gamepad; keyboard"></iframe>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification Toast Message -->
+    <div id="toast" class="fixed bottom-6 right-6 z-50 bg-slate-900 border border-slate-700 text-slate-200 px-4 py-3 rounded-xl shadow-2xl flex items-center space-x-3 transition-all duration-300 transform translate-y-20 opacity-0">
+        <i id="toastIcon" class="fa-solid fa-circle-check text-green-400"></i>
+        <span id="toastMsg" class="text-sm font-medium">Notification message</span>
+    </div>
+
+    <!-- JavaScript Logic -->
+    <script>
+        // Hide loader spinner when iframe finishes loading
+        function hideLoader() {
+            const spinner = document.getElementById('loadingSpinner');
+            if (spinner) {
+                spinner.style.display = 'none';
+            }
+        }
+
+        // Preset Open Source & Free Accessible Games
+        const DEFAULT_GAMES = [
+            {
+                id: '2048-game',
+                title: '2048',
+                category: 'Puzzle',
+                url: 'https://play2048.co/',
+                image: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=600&q=80',
+                desc: 'Join the numbers and get to the 2048 tile in this classic puzzle game.',
+                favorite: false,
+                isDefault: true
+            },
+            {
+                id: 'hextris-game',
+                title: 'Hextris',
+                category: 'Puzzle',
+                url: 'https://hextris.io/',
+                image: 'https://images.unsplash.com/photo-1550745165-9bc0b252726f?auto=format&fit=crop&w=600&q=80',
+                desc: 'Fast-paced puzzle game inspired by Tetris on a hexagonal grid.',
+                favorite: true,
+                isDefault: true
+            },
+            {
+                id: 'pacman-game',
+                title: 'Pac-Man Canvas',
+                category: 'Arcade',
+                url: 'https://pacman-js.vercel.app/',
+                image: 'https://images.unsplash.com/photo-1579373903781-fd5c0c30c4cd?auto=format&fit=crop&w=600&q=80',
+                desc: 'Navigate Pacman through mazes and dodge the ghosts.',
+                favorite: false,
+                isDefault: true
+            },
+            {
+                id: 'snake-game',
+                title: 'Retro Snake',
+                category: 'Arcade',
+                url: 'https://playsnake.org/',
+                image: 'https://images.unsplash.com/photo-1628157582853-a796fa650a6a?auto=format&fit=crop&w=600&q=80',
+                desc: 'Classic Nokia-style arcade snake game. Eat food and grow long.',
+                favorite: false,
+                isDefault: true
+            },
+            {
+                id: 'paperio-game',
+                title: 'Paper.io 2',
+                category: 'Action',
+                url: 'https://paper-io.com/',
+                image: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&w=600&q=80',
+                desc: 'Conquer as much territory as possible and outsmart competitors.',
+                favorite: false,
+                isDefault: true
+            }
+        ];
+
+        let games = [];
+        let currentCategory = 'All';
+        let searchQuery = '';
+        let activeGameUrl = '';
+
+        // Initialize Application
+        window.addEventListener('DOMContentLoaded', () => {
+            // Attach iframe onload listener via JS to avoid inline HTML race conditions
+            const iframe = document.getElementById('gameIframe');
+            if (iframe) {
+                iframe.addEventListener('load', hideLoader);
+            }
+
+            loadGamesFromStorage();
+            renderCategories();
+            renderGames();
+        });
+
+        // Load Games from LocalStorage
+        function loadGamesFromStorage() {
+            const stored = localStorage.getItem('gamevault_games');
+            if (stored) {
+                try {
+                    games = JSON.parse(stored);
+                } catch (e) {
+                    games = [...DEFAULT_GAMES];
+                }
+            } else {
+                games = [...DEFAULT_GAMES];
+                saveToStorage();
+            }
+        }
+
+        function saveToStorage() {
+            localStorage.setItem('gamevault_games', JSON.stringify(games));
+        }
+
+        // Render Category Filter Tabs
+        function renderCategories() {
+            const categories = ['All', 'Favorites', 'Action', 'Puzzle', 'Arcade', 'Retro', 'Custom'];
+            const container = document.getElementById('categoryContainer');
+            
+            container.innerHTML = categories.map(cat => `
+                <button onclick="filterCategory('${cat}')" 
+                    class="px-4 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all duration-200 ${
+                        currentCategory === cat 
+                        ? 'bg-brand-600 text-white shadow-lg shadow-brand-500/25' 
+                        : 'bg-slate-900/80 text-slate-400 hover:bg-slate-800 hover:text-slate-200 border border-slate-800'
+                    }">
+                    ${cat === 'Favorites' ? '<i class="fa-solid fa-star text-amber-400 mr-1.5"></i>' : ''}
+                    ${cat}
+                </button>
+            `).join('');
+        }
+
+        // Filter Handlers
+        function filterCategory(cat) {
+            currentCategory = cat;
+            renderCategories();
+            renderGames();
+        }
+
+        function handleSearch() {
+            searchQuery = document.getElementById('searchInput').value.toLowerCase();
+            renderGames();
+        }
+
+        // Render Games Cards Grid
+        function renderGames() {
+            const grid = document.getElementById('gamesGrid');
+            const emptyState = document.getElementById('emptyState');
+
+            let filtered = games.filter(game => {
+                const matchesSearch = game.title.toLowerCase().includes(searchQuery) || 
+                                     game.category.toLowerCase().includes(searchQuery) ||
+                                     (game.desc && game.desc.toLowerCase().includes(searchQuery));
+                
+                if (!matchesSearch) return false;
+
+                if (currentCategory === 'All') return true;
+                if (currentCategory === 'Favorites') return game.favorite;
+                return game.category === currentCategory;
+            });
+
+            document.getElementById('gameCountText').innerText = `Showing ${filtered.length} ${filtered.length === 1 ? 'game' : 'games'}`;
+
+            if (filtered.length === 0) {
+                grid.innerHTML = '';
+                emptyState.classList.remove('hidden');
+                emptyState.classList.add('flex');
+                return;
+            }
+
+            emptyState.classList.add('hidden');
+            emptyState.classList.remove('flex');
+
+            grid.innerHTML = filtered.map(game => `
+                <div class="glass-card rounded-2xl overflow-hidden group hover:-translate-y-1.5 transition-all duration-300 flex flex-col justify-between glow-hover relative">
+                    
+                    <!-- Card Top Image Banner -->
+                    <div class="relative h-44 overflow-hidden bg-slate-900">
+                        <img src="${game.image || 'https://placehold.co/600x400/1e293b/6366f1?text=' + encodeURIComponent(game.title)}" 
+                             alt="${game.title}" 
+                             class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                             onerror="this.src='https://placehold.co/600x400/1e293b/6366f1?text=${encodeURIComponent(game.title)}'">
+                        
+                        <div class="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/20 to-transparent"></div>
+
+                        <!-- Category Badge -->
+                        <span class="absolute top-3 left-3 text-[11px] font-bold px-2.5 py-1 rounded-lg bg-slate-900/80 text-slate-300 border border-slate-700/60 backdrop-blur-md">
+                            ${game.category}
+                        </span>
+
+                        <!-- Favorite Star Button -->
+                        <button onclick="toggleFavorite('${game.id}', event)" class="absolute top-3 right-3 w-8 h-8 rounded-lg bg-slate-900/80 border border-slate-700/60 text-slate-400 hover:text-amber-400 flex items-center justify-center backdrop-blur-md transition">
+                            <i class="${game.favorite ? 'fa-solid fa-star text-amber-400' : 'fa-regular fa-star'} text-sm"></i>
+                        </button>
+                    </div>
+
+                    <!-- Card Body Info -->
+                    <div class="p-4 flex-grow flex flex-col justify-between">
+                        <div>
+                            <h3 class="font-bold text-slate-100 text-base mb-1 group-hover:text-brand-500 transition">${game.title}</h3>
+                            <p class="text-xs text-slate-400 line-clamp-2 leading-relaxed">${game.desc || 'No description provided.'}</p>
+                        </div>
+
+                        <!-- Action Controls -->
+                        <div class="mt-4 pt-3 border-t border-slate-800/80 flex items-center justify-between">
+                            <button onclick="launchGame('${game.id}')" class="w-full bg-gradient-to-r from-brand-600 to-violet-600 hover:from-brand-500 hover:to-violet-500 text-white text-xs font-bold py-2 px-4 rounded-xl flex items-center justify-center space-x-2 transition shadow-md shadow-brand-500/20">
+                                <i class="fa-solid fa-play text-[10px]"></i>
+                                <span>Play Now</span>
+                            </button>
+
+                            ${!game.isDefault ? `
+                                <button onclick="deleteGame('${game.id}', event)" title="Delete Custom Game" class="ml-2 p-2 text-slate-500 hover:text-red-400 hover:bg-slate-800 rounded-lg transition">
+                                    <i class="fa-solid fa-trash-can text-xs"></i>
+                                </button>
+                            ` : ''}
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Launch Game Viewer
+        function launchGame(gameId) {
+            const game = games.find(g => g.id === gameId);
+            if (!game) return;
+
+            activeGameUrl = game.url;
+            document.getElementById('viewerTitle').innerText = game.title;
+            document.getElementById('viewerCategory').innerText = game.category;
+            
+            const iframe = document.getElementById('gameIframe');
+            document.getElementById('loadingSpinner').style.display = 'flex';
+            iframe.src = game.url;
+
+            document.getElementById('gameViewerModal').classList.remove('hidden');
+        }
+
+        function closeGameViewer() {
+            const iframe = document.getElementById('gameIframe');
+            iframe.src = '';
+            document.getElementById('gameViewerModal').classList.add('hidden');
+        }
+
+        function refreshGame() {
+            const iframe = document.getElementById('gameIframe');
+            document.getElementById('loadingSpinner').style.display = 'flex';
+            iframe.src = activeGameUrl;
+        }
+
+        function openExternal() {
+            if (activeGameUrl) {
+                window.open(activeGameUrl, '_blank');
+            }
+        }
+
+        function toggleFullscreen() {
+            const modal = document.getElementById('gameViewerModal');
+            if (!document.fullscreenElement) {
+                modal.requestFullscreen().catch(err => {
+                    showToast('Fullscreen mode not permitted by browser context.', 'error');
+                });
+            } else {
+                document.exitFullscreen();
+            }
+        }
+
+        // Favorite Toggle Logic
+        function toggleFavorite(id, e) {
+            e.stopPropagation();
+            const game = games.find(g => g.id === id);
+            if (game) {
+                game.favorite = !game.favorite;
+                saveToStorage();
+                renderGames();
+                showToast(game.favorite ? `Added ${game.title} to Favorites` : `Removed from Favorites`);
+            }
+        }
+
+        // Add Custom Game Logic
+        function openAddModal() {
+            document.getElementById('addModal').classList.remove('hidden');
+        }
+
+        function closeAddModal() {
+            document.getElementById('addModal').classList.add('hidden');
+            document.getElementById('addGameForm').reset();
+        }
+
+        function saveCustomGame(e) {
+            e.preventDefault();
+            const title = document.getElementById('gameTitle').value.trim();
+            const url = document.getElementById('gameUrl').value.trim();
+            const category = document.getElementById('gameCategory').value;
+            const image = document.getElementById('gameImage').value.trim();
+            const desc = document.getElementById('gameDesc').value.trim();
+
+            const newGame = {
+                id: 'custom-' + Date.now(),
+                title,
+                url,
+                category,
+                image: image || '',
+                desc: desc || 'User uploaded game link.',
+                favorite: false,
+                isDefault: false
+            };
+
+            games.unshift(newGame);
+            saveToStorage();
+            renderGames();
+            closeAddModal();
+            showToast(`Successfully added "${title}"!`);
+        }
+
+        // Delete Custom Game Logic
+        function deleteGame(id, e) {
+            e.stopPropagation();
+            const game = games.find(g => g.id === id);
+            if (!game) return;
+
+            if (confirm(`Are you sure you want to remove "${game.title}"?`)) {
+                games = games.filter(g => g.id !== id);
+                saveToStorage();
+                renderGames();
+                showToast('Game removed from library');
+            }
+        }
+
+        // Reset to Default Games
+        function resetDefaults() {
+            if (confirm('Reset launcher to original default games list? (Custom games will be removed)')) {
+                games = [...DEFAULT_GAMES];
+                saveToStorage();
+                renderGames();
+                showToast('Reset to default games');
+            }
+        }
+
+        // Custom Notification Toast Message
+        function showToast(msg, type = 'success') {
+            const toast = document.getElementById('toast');
+            const toastMsg = document.getElementById('toastMsg');
+            const toastIcon = document.getElementById('toastIcon');
+
+            toastMsg.innerText = msg;
+            if (type === 'error') {
+                toastIcon.className = 'fa-solid fa-circle-exclamation text-red-400';
+            } else {
+                toastIcon.className = 'fa-solid fa-circle-check text-green-400';
+            }
+
+            toast.classList.remove('translate-y-20', 'opacity-0');
+            toast.classList.add('translate-y-0', 'opacity-100');
+
+            setTimeout(() => {
+                toast.classList.remove('translate-y-0', 'opacity-100');
+                toast.classList.add('translate-y-20', 'opacity-0');
+            }, 3000);
+        }
+    </script>
+</body>
+</html>
